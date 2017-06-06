@@ -46,6 +46,33 @@
 #include <QDir>
 #include <QTime>
 #include <QDebug>
+#include <QElapsedTimer>
+//#include <QtWidgets>
+//#include <QObject>
+
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QByteArray localMsg = msg.toLocal8Bit();
+    switch (type) {
+    case QtDebugMsg:
+        fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        break;
+    //ase QtInfoMsg:
+    //    fprintf(stderr, "Info: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+    //    break;
+    case QtWarningMsg:
+        fprintf(stderr, "Warning: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        break;
+    case QtCriticalMsg:
+        //fprintf(stderr, "Critical: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        fprintf(stderr, "Critical: %s\n", localMsg.constData());
+        //QMessageBox::about(this, QObject::tr("Loading Time"), QObject::tr("<p>Time</p>"));
+        break;
+    case QtFatalMsg:
+        fprintf(stderr, "Fatal: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        abort();
+    }
+}
 
 namespace Carta {
 
@@ -55,7 +82,7 @@ class ViewManager::Factory : public Carta::State::CartaObjectFactory {
 
 public:
     Factory():
-        CartaObjectFactory( "ViewManager" ){};
+        CartaObjectFactory( "ViewManager" ){}
     Carta::State::CartaObject * create (const QString & path, const QString & id)
     {
         return new ViewManager (path, id);
@@ -441,7 +468,21 @@ void ViewManager::_initCallbacks(){
         std::set<QString> keys = {Util::ID,DATA};
         std::map<QString,QString> dataValues = Carta::State::UtilState::parseParamMap( params, keys );
         bool fileLoaded = false;
+
+        // get the time elapse for the function "loadFile(...)"
+        QElapsedTimer timer;
+        timer.start();
+
+        // execute the function "loadFile(...)"
         QString result = loadFile( dataValues[Util::ID], dataValues[DATA],&fileLoaded);
+
+        // set the output stype of log lines
+        qInstallMessageHandler(myMessageOutput);
+        qCritical() << "++++++++ Time to load the image file" << dataValues[DATA] << ":" << timer.elapsed() << "milliseconds";
+
+        // unset the output stype of log lines
+        qInstallMessageHandler(0);
+
         if ( !fileLoaded ){
             Util::commandPostProcess( result);
         }
@@ -611,11 +652,11 @@ QString ViewManager::loadFile( const QString& controlId, const QString& fileName
     for ( int i = 0; i < controlCount; i++ ){
         const QString controlPath= m_controllers[i]->getPath();
         if ( controlId  == controlPath ){
-           //Add the data to it
+            //Add the data to it
             _makeDataLoader();
-           QString path = m_dataLoader->getFile( fileName, "" );
-           result = m_controllers[i]->addData( path, fileLoaded );
-           break;
+            QString path = m_dataLoader->getFile( fileName, "" );
+            result = m_controllers[i]->addData( path, fileLoaded );
+            break;
         }
     }
     return result;

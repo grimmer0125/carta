@@ -16,6 +16,31 @@
 #include <QCoreApplication>
 #include <functional>
 
+#include <QElapsedTimer>
+
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QByteArray localMsg = msg.toLocal8Bit();
+    switch (type) {
+    case QtDebugMsg:
+        fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        break;
+    //ase QtInfoMsg:
+    //    fprintf(stderr, "Info: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+    //    break;
+    case QtWarningMsg:
+        fprintf(stderr, "Warning: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        break;
+    case QtCriticalMsg:
+        //fprintf(stderr, "Critical: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        fprintf(stderr, "Critical: %s\n", localMsg.constData());
+        break;
+    case QtFatalMsg:
+        fprintf(stderr, "Fatal: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        abort();
+    }
+}
+
 ///
 /// \brief internal class of DesktopConnector, containing extra information we like
 ///  to remember with each view
@@ -267,8 +292,14 @@ void DesktopConnector::refreshViewNow(IView *view)
     const QImage & origImage = view-> getBuffer();
 
     QSize clientImageSize = viewInfo->clientSize;
+
     if( origImage.size() != clientImageSize && clientImageSize.height() > 0 &&
             clientImageSize.width() > 0 && origImage.height() > 0 ) {
+
+        // get the time elapse for the function "loadFile(...)"
+        QElapsedTimer timer;
+        timer.start();
+
         qDebug() << "Having to re-scale the image, this is slow" << origImage.size() << viewInfo->clientSize;
         // scale the image to fit the client size, in case it wasn't scaled alerady
         QImage destImage = origImage.scaled(
@@ -292,6 +323,14 @@ void DesktopConnector::refreshViewNow(IView *view)
                                      0, origImage.height()-1);
 
         emit jsViewUpdatedSignal( view-> name(), pix, viewInfo-> refreshId);
+
+        // set the output stype of log lines
+        qInstallMessageHandler(myMessageOutput);
+        qCritical() << "++++++++ Time to re-scale the image:" << timer.elapsed() << "milliseconds";
+
+        // unset the output stype of log lines
+        qInstallMessageHandler(0);
+
     }
     else {
         viewInfo-> tx = Carta::Lib::LinearMap1D( 0, 1, 0, 1);
