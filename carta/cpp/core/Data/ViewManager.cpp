@@ -42,34 +42,53 @@
 #include "Data/Units/UnitsWavelength.h"
 #include "Data/Util.h"
 #include "State/UtilState.h"
-
 #include <QDir>
 #include <QTime>
 #include <QDebug>
+#include <QtGlobal>
 #include <QElapsedTimer>
-//#include <QtWidgets>
-//#include <QObject>
 
-void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
-{
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
+    QDateTime dateTime(QDateTime::currentDateTime());
+    QString timeStr(dateTime.toString("dd-MM-yyyy HH:mm:ss"));
+    //QString contextString(QString("(%1, %2)").arg(context.file).arg(context.line));
+
+    QFile outFile("/Users/mark/file.log");
+
+    int setFileSizeLimit = 1000000; // unit: bytes (1K = 1000B, 1M = 1000K)
+    if (outFile.size() > setFileSizeLimit) {
+        outFile.remove();
+    }
+
+    outFile.open(QIODevice::WriteOnly | QIODevice::Append);
+    QTextStream stream(&outFile);
+
     QByteArray localMsg = msg.toLocal8Bit();
+    QString criticalMsg = localMsg.constData();
+
     switch (type) {
     case QtDebugMsg:
-        fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        //fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        fprintf(stderr, "Debug: %s\n", localMsg.constData());
         break;
-    //ase QtInfoMsg:
+    //case QtInfoMsg: // it is interduced after Qt 5.5
     //    fprintf(stderr, "Info: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
     //    break;
     case QtWarningMsg:
-        fprintf(stderr, "Warning: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        //fprintf(stderr, "Warning: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        fprintf(stderr, "\033[1;33mWarning\033[0m: %s\n", localMsg.constData());
         break;
     case QtCriticalMsg:
         //fprintf(stderr, "Critical: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
-        fprintf(stderr, "Critical: %s\n", localMsg.constData());
-        //QMessageBox::about(this, QObject::tr("Loading Time"), QObject::tr("<p>Time</p>"));
+        if (criticalMsg[0] == '+' && criticalMsg[1] == '+') {
+            fprintf(stderr, "\033[1m\033[31mInfo: %s \033[0m \n", localMsg.constData());
+            stream << timeStr << " " << localMsg.constData() << endl;
+        } else {
+            fprintf(stderr, "\033[31mCritical\033[0m: %s\n", localMsg.constData());
+        }
         break;
     case QtFatalMsg:
-        fprintf(stderr, "Fatal: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
+        fprintf(stderr, "\033[31mFatal\033[0m: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
         abort();
     }
 }
@@ -481,7 +500,7 @@ void ViewManager::_initCallbacks(){
         qCritical() << "++++++++ Time to load the image file" << dataValues[DATA] << ":" << timer.elapsed() << "milliseconds";
 
         // unset the output stype of log lines
-        qInstallMessageHandler(0);
+        //qInstallMessageHandler(0);
 
         if ( !fileLoaded ){
             Util::commandPostProcess( result);
