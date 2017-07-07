@@ -597,6 +597,10 @@ bool DataGrid::_setAxisInfos( std::vector<AxisInfo> supportedAxes){
             //    _setAxis( AxisMapper::AXIS_Y, name, &axisTypesChanged);
             //}
             axisTypesChanged = true;
+            if ( AxisMapper::getType(name)==Carta::Lib::AxisInfo::KnownType::STOKES ){
+                m_state.resizeArray( SUPPORTED_AXES, axisCount-1, Carta::State::StateInterface::PreserveAll);
+                continue;
+            }
             m_state.setValue<QString>( lookup, name );
         }
     }
