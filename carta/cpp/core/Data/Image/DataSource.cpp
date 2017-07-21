@@ -521,142 +521,155 @@ std::vector<std::pair<int,double> > DataSource::_getIntensityCache( int frameLow
         // running out of memory unnecessarily through dynamic allocation
         std::vector<int> dims = rawData->dims();
         int total_size = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<int>());
-        allValues.reserve(total_size);
+        // allValues.reserve(total_size);
         int index = 0;
+        double maximum = std::nan("");
+        double minimum = std::nan("");
 
         // filter the raw data and save in a pair array {key, value} if the value is finite
-        view.forEach( [&allValues, &index] ( const double  val ) {
+        // view.forEach( [&allValues, &index, &maximum, &minimum] ( const double  val ) {
+        view.forEach( [&index, &maximum, &minimum] ( const double  val ) {
+            if ( std::isnan(maximum) ) maximum = val;
+            if ( std::isnan(minimum) ) minimum = val;
             if ( std::isfinite( val ) ) {
-                allValues.push_back( std::make_pair(index, val) );
+                // allValues.push_back( std::make_pair(index, val) );
+                if (maximum < val) maximum = val;
+                if (minimum > val) minimum = val;
             }
             index++;
         }
         );
+
+        std::cout << "maximum: " << maximum << "minimum: " << minimum;
+        intensities[0].first = 0;
+        intensities[1].first = 0;
+        intensities[0].second = minimum;
+        intensities[1].second = maximum;
         qDebug() << "++++++++ raw data index number=" << index;
 
-        if ( allValues.size() > 0 ){
-
-            int divisor = total_size;
-            if (spectralIndex != -1) {
-                // "total_size" is the total number of data set including channels and stokes.
-                // The dimension of SPECTRAL index, dims[spectralIndex], is the total number of channel.
-                // So the divisor is the total number of data set for each channel (not for each stoke),
-                // and each channel may contains multiple stokes.
-                divisor /= dims[spectralIndex];
-            }
-
-            // return bool value: ture or false
-            // following code line is to only compare the intensity values and ignore the indices
-            auto compareIntensityTuples = [] (const std::pair<int,double>& lhs, const std::pair<int,double>& rhs) { return lhs.second < rhs.second; };
-            auto ascendIntensityTuples  = [] (const std::pair<int,double>& lhs, const std::pair<int,double>& rhs) { return lhs.second > rhs.second; };
-
-            for ( int i = 0; i < percentileCount; i++ ){
-
-                //Missing intensity key value, which means we do not find it in the memory cache and the disk cache
-                if ( intensities[i].first < 0 ){
-
-                    // The definition of percentile (e.q. 99%) in the following code lines is to get elements from data array that
-                    // are in the range (e.q. 0.5%-th ~ 99.5%-th of elements), note the data array has to be sorted first.
-                    // Note this is not getting elements in the Gaussian distribution range (e.q. 0.5% ~ 99.5%).
-                    int locationIndex = allValues.size() * percentiles[i] - 1;
-
-                    if ( locationIndex < 0 ){
-                        locationIndex = 0;
-                    }
-
-                    std::clock_t starttime = clock();
-                    // // Following code line sort the partial raw data set by selection algorithm (only for array values and not for array keys).
-                    // // get elements from data array that are in the range (e.q. 0.5%-th ~ 99.5%-th of elements)
-                    // std::nth_element( allValues.begin(), allValues.begin()+locationIndex, allValues.end(), compareIntensityTuples );
-                    std::clock_t endtime = clock();
-                    // std::cout << "---------------- The time of calculating percentile by nth_element. ----------------"
-                    //          << " Index : " << i << " Value : " << allValues[locationIndex].second
-                    //          << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
-
-                    starttime = clock();
-                    std::vector<std::pair<int,double> >::iterator valiter;
-                    double pval = allValues.begin()->second;
-                    int allvalcount = 0;
-                    if ( i==0 ){
-                        for (valiter=allValues.begin(); valiter!=allValues.end(); valiter++){
-                            if (pval > valiter->second) {
-                                pval = valiter->second;
-                            }
-                            allvalcount++;
-                        }
-                    }
-                    endtime = clock();
-                    std::cout << "---------------- The time of calculating percentile by iterator. ----------------"
-                             << " Index : " << i << " Value : " << pval << " Count : " << allvalcount << " Size : " << total_size
-                             << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
-
-                    starttime = clock();
-                    pval = allValues.begin()->second;
-                    if ( i==1 ){
-                        for (valiter=allValues.begin(); valiter!=allValues.end(); valiter++){
-                            if (pval < valiter->second) {
-                                pval = valiter->second;
-                            }
-                        }
-                    }
-                    endtime = clock();
-                    std::cout << "---------------- The time of calculating percentile by iterator. ----------------"
-                          << " Index : " << i << " Value : " << pval
-                          << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
-
-                    starttime = clock();
-                    if ( i==0 ) {
-                        std::partial_sort (allValues.begin(), allValues.begin()+locationIndex+1, allValues.end(), compareIntensityTuples);
-                        intensities[i].second = allValues[locationIndex].second;
-                    }
-                    pval = allValues.begin()->second;
-                    endtime = clock();
-                    std::cout << "---------------- The time of partial sorting descending. ----------------"
-                        << " Index : " << i << " Value : " << pval
-                        << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
-
-                    starttime = clock();
-                    if ( i==1 ) {
-                        double revpercentile = 1.0 - percentiles[1];
-                        int revlocationIndex = std::max((int)(allValues.size() * revpercentile - 1), 0);
-                        // std::reverse(allValues.begin(), allValues.end());
-                        std::partial_sort (allValues.begin(), allValues.begin()+revlocationIndex+1, allValues.end(), ascendIntensityTuples);
-                        intensities[i].second = allValues[revlocationIndex].second;
-                    }
-                    pval = allValues.begin()->second;
-                    endtime = clock();
-                    std::cout << "---------------- The time of partial sorting ascending. ----------------"
-                        << " Index : " << i << " Value : " << pval
-                        << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
-
-                    // get the intensity value
-                    // intensities[i].second = allValues[locationIndex].second;
-
-                    // get the channel index corresponding to the above intensity value
-                    intensities[i].first = allValues[locationIndex].first / divisor;
-
-                    if ( frameLow >= 0 ){
-                        intensities[i].first += frameLow;
-                    }
-
-                    // put calculated values in both the memory cache and the disk cache
-                    m_cachedPercentiles.put( frameLow, frameHigh, intensities[i].first, percentiles[i], intensities[i].second, stokeFrame);
-
-                    if (m_diskCache) {
-
-                        QString locationKey = QString("%1/%2/%3/%4/%5/location").arg(m_fileName).arg(frameLow).arg(frameHigh).arg(stokeFrame).arg(percentiles[i]);
-                        QString intensityKey = QString("%1/%2/%3/%4/%5/intensity").arg(m_fileName).arg(frameLow).arg(frameHigh).arg(stokeFrame).arg(percentiles[i]);
-
-                        m_diskCache->setEntry(locationKey.toUtf8(), i2qb(intensities[i].first), 0);
-                        m_diskCache->setEntry(intensityKey.toUtf8(), d2qb(intensities[i].second), 0);
-                    }
-
-                    qDebug() << "++++++++ For percentile" << percentiles[i]
-                             << "intensity is" << intensities[i].second
-                             << "and location is" << intensities[i].first << "(channel)";
-                }
-            }
-        }
+        // if ( allValues.size() > 0 ){
+        //
+        //     int divisor = total_size;
+        //     if (spectralIndex != -1) {
+        //         // "total_size" is the total number of data set including channels and stokes.
+        //         // The dimension of SPECTRAL index, dims[spectralIndex], is the total number of channel.
+        //         // So the divisor is the total number of data set for each channel (not for each stoke),
+        //         // and each channel may contains multiple stokes.
+        //         divisor /= dims[spectralIndex];
+        //     }
+        //
+        //     // return bool value: ture or false
+        //     // following code line is to only compare the intensity values and ignore the indices
+        //     auto compareIntensityTuples = [] (const std::pair<int,double>& lhs, const std::pair<int,double>& rhs) { return lhs.second < rhs.second; };
+        //     auto ascendIntensityTuples  = [] (const std::pair<int,double>& lhs, const std::pair<int,double>& rhs) { return lhs.second > rhs.second; };
+        //
+        //     for ( int i = 0; i < percentileCount; i++ ){
+        //
+        //         //Missing intensity key value, which means we do not find it in the memory cache and the disk cache
+        //         if ( intensities[i].first < 0 ){
+        //
+        //             // The definition of percentile (e.q. 99%) in the following code lines is to get elements from data array that
+        //             // are in the range (e.q. 0.5%-th ~ 99.5%-th of elements), note the data array has to be sorted first.
+        //             // Note this is not getting elements in the Gaussian distribution range (e.q. 0.5% ~ 99.5%).
+        //             int locationIndex = allValues.size() * percentiles[i] - 1;
+        //
+        //             if ( locationIndex < 0 ){
+        //                 locationIndex = 0;
+        //             }
+        //
+        //             std::clock_t starttime = clock();
+        //             // // Following code line sort the partial raw data set by selection algorithm (only for array values and not for array keys).
+        //             // // get elements from data array that are in the range (e.q. 0.5%-th ~ 99.5%-th of elements)
+        //             // std::nth_element( allValues.begin(), allValues.begin()+locationIndex, allValues.end(), compareIntensityTuples );
+        //             std::clock_t endtime = clock();
+        //             // std::cout << "---------------- The time of calculating percentile by nth_element. ----------------"
+        //             //          << " Index : " << i << " Value : " << allValues[locationIndex].second
+        //             //          << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
+        //
+        //             starttime = clock();
+        //             std::vector<std::pair<int,double> >::iterator valiter;
+        //             double pval = allValues.begin()->second;
+        //             int allvalcount = 0;
+        //             if ( i==0 ){
+        //                 for (valiter=allValues.begin(); valiter!=allValues.end(); valiter++){
+        //                     if (pval > valiter->second) {
+        //                         pval = valiter->second;
+        //                     }
+        //                     allvalcount++;
+        //                 }
+        //             }
+        //             endtime = clock();
+        //             std::cout << "---------------- The time of calculating percentile by iterator. ----------------"
+        //                      << " Index : " << i << " Value : " << pval << " Count : " << allvalcount << " Size : " << total_size
+        //                      << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
+        //
+        //             starttime = clock();
+        //             pval = allValues.begin()->second;
+        //             if ( i==1 ){
+        //                 for (valiter=allValues.begin(); valiter!=allValues.end(); valiter++){
+        //                     if (pval < valiter->second) {
+        //                         pval = valiter->second;
+        //                     }
+        //                 }
+        //             }
+        //             endtime = clock();
+        //             std::cout << "---------------- The time of calculating percentile by iterator. ----------------"
+        //                   << " Index : " << i << " Value : " << pval
+        //                   << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
+        //
+        //             starttime = clock();
+        //             if ( i==0 ) {
+        //                 std::partial_sort (allValues.begin(), allValues.begin()+locationIndex+1, allValues.end(), compareIntensityTuples);
+        //                 intensities[i].second = allValues[locationIndex].second;
+        //             }
+        //             pval = allValues.begin()->second;
+        //             endtime = clock();
+        //             std::cout << "---------------- The time of partial sorting descending. ----------------"
+        //                 << " Index : " << i << " Value : " << pval
+        //                 << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
+        //
+        //             starttime = clock();
+        //             if ( i==1 ) {
+        //                 double revpercentile = 1.0 - percentiles[1];
+        //                 int revlocationIndex = std::max((int)(allValues.size() * revpercentile - 1), 0);
+        //                 // std::reverse(allValues.begin(), allValues.end());
+        //                 std::partial_sort (allValues.begin(), allValues.begin()+revlocationIndex+1, allValues.end(), ascendIntensityTuples);
+        //                 intensities[i].second = allValues[revlocationIndex].second;
+        //             }
+        //             pval = allValues.begin()->second;
+        //             endtime = clock();
+        //             std::cout << "---------------- The time of partial sorting ascending. ----------------"
+        //                 << " Index : " << i << " Value : " << pval
+        //                 << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
+        //
+        //             // get the intensity value
+        //             // intensities[i].second = allValues[locationIndex].second;
+        //
+        //             // get the channel index corresponding to the above intensity value
+        //             intensities[i].first = allValues[locationIndex].first / divisor;
+        //
+        //             if ( frameLow >= 0 ){
+        //                 intensities[i].first += frameLow;
+        //             }
+        //
+        //             // put calculated values in both the memory cache and the disk cache
+        //             m_cachedPercentiles.put( frameLow, frameHigh, intensities[i].first, percentiles[i], intensities[i].second, stokeFrame);
+        //
+        //             if (m_diskCache) {
+        //
+        //                 QString locationKey = QString("%1/%2/%3/%4/%5/location").arg(m_fileName).arg(frameLow).arg(frameHigh).arg(stokeFrame).arg(percentiles[i]);
+        //                 QString intensityKey = QString("%1/%2/%3/%4/%5/intensity").arg(m_fileName).arg(frameLow).arg(frameHigh).arg(stokeFrame).arg(percentiles[i]);
+        //
+        //                 m_diskCache->setEntry(locationKey.toUtf8(), i2qb(intensities[i].first), 0);
+        //                 m_diskCache->setEntry(intensityKey.toUtf8(), d2qb(intensities[i].second), 0);
+        //             }
+        //
+        //             qDebug() << "++++++++ For percentile" << percentiles[i]
+        //                      << "intensity is" << intensities[i].second
+        //                      << "and location is" << intensities[i].first << "(channel)";
+        //         }
+        //     }
+        // }
     }
     return intensities;
 }
