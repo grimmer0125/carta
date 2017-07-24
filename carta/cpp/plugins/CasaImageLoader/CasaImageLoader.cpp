@@ -17,6 +17,7 @@
 #include <memory>
 #include <algorithm>
 #include <cstdint>
+#include <ctime>
 
 CasaImageLoader::CasaImageLoader(QObject *parent) :
     QObject(parent)
@@ -76,6 +77,7 @@ static CCImageBase::SharedPtr tryCast( casacore::LatticeBase * lat)
 Carta::Lib::Image::ImageInterface::SharedPtr CasaImageLoader::loadImage( const QString & fname)
 {
     qDebug() << "CasaImageLoader plugin trying to load image: " << fname;
+    std::clock_t starttime, endtime;
 
     // get the image type
     casacore::ImageOpener::ImageTypes filetype = casacore::ImageOpener::imageType(fname.toStdString());
@@ -84,19 +86,29 @@ Carta::Lib::Image::ImageInterface::SharedPtr CasaImageLoader::loadImage( const Q
     casacore::LatticeBase * lat = nullptr;
     if(filetype == casacore::ImageOpener::ImageTypes::AIPSPP)
     {
+        starttime = clock();
         lat = casacore::ImageOpener::openPagedImage ( fname.toStdString());
+        endtime = clock();
         qDebug() << "\t-opened as paged image";
+        qDebug() << "---------------- The time of opening paged image. ----------------\n"
+                 << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec\n";
     }
     else if(filetype != casacore::ImageOpener::ImageTypes::UNKNOWN)
     {
+        starttime = clock();
         lat = casacore::ImageOpener::openImage ( fname.toStdString());
+        endtime = clock();
         if(filetype == casacore::ImageOpener::ImageTypes::FITS)
         {
             qDebug() << "\t-opened as FITS image";
+            qDebug() << "---------------- The time of opening fits image. ----------------\n"
+                     << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec\n";
         }
         else if(filetype == casacore::ImageOpener::ImageTypes::MIRIAD )
         {
             qDebug() << "\t-opened as MIRIAD image";
+            qDebug() << "---------------- The time of opening miriad image. ----------------\n"
+                     << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec\n";
         }
         else
         {
@@ -157,9 +169,9 @@ Carta::Lib::Image::ImageInterface::SharedPtr CasaImageLoader::loadImage( const Q
         img = new casacore::ImageExpr<casacore::Float> ( le, expr );
         qDebug() << "\t-LEL conversion successful";
         return CCImage<float>::create( img);
-    } catch ( ... ) {} 
+    } catch ( ... ) {}
 */
-    
+
 
     // indicate failure
     qWarning() << "Unsupported lattice type:" << lat-> dataType();
