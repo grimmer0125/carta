@@ -584,11 +584,12 @@ std::vector<std::pair<int,double> > DataSource::_getIntensityCache( int frameLow
                             }
                             allvalcount++;
                         }
+                        intensities[i].second = pval;
                     }
                     endtime = clock();
-                    std::cout << "---------------- The time of calculating percentile by iterator. ----------------"
+                    qDebug() << "---------------- The time of calculating percentile by iterator. ----------------\n"
                              << " Index : " << i << " Value : " << pval << " Count : " << allvalcount << " Size : " << total_size
-                             << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
+                             << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec\n";
 
                     starttime = clock();
                     pval = allValues.begin()->second;
@@ -598,36 +599,37 @@ std::vector<std::pair<int,double> > DataSource::_getIntensityCache( int frameLow
                                 pval = valiter->second;
                             }
                         }
+                        intensities[i].second = pval;
                     }
                     endtime = clock();
-                    std::cout << "---------------- The time of calculating percentile by iterator. ----------------"
-                          << " Index : " << i << " Value : " << pval
-                          << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
+                    qDebug() << "---------------- The time of calculating percentile by iterator. ----------------\n"
+                             << " Index : " << i << " Value : " << pval
+                             << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec\n";
 
-                    starttime = clock();
-                    if ( i==0 ) {
-                        std::partial_sort (allValues.begin(), allValues.begin()+locationIndex+1, allValues.end(), compareIntensityTuples);
-                        intensities[i].second = allValues[locationIndex].second;
-                    }
-                    pval = allValues.begin()->second;
-                    endtime = clock();
-                    std::cout << "---------------- The time of partial sorting descending. ----------------"
-                        << " Index : " << i << " Value : " << pval
-                        << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
-
-                    starttime = clock();
-                    if ( i==1 ) {
-                        double revpercentile = 1.0 - percentiles[1];
-                        int revlocationIndex = std::max((int)(allValues.size() * revpercentile - 1), 0);
-                        // std::reverse(allValues.begin(), allValues.end());
-                        std::partial_sort (allValues.begin(), allValues.begin()+revlocationIndex+1, allValues.end(), ascendIntensityTuples);
-                        intensities[i].second = allValues[revlocationIndex].second;
-                    }
-                    pval = allValues.begin()->second;
-                    endtime = clock();
-                    std::cout << "---------------- The time of partial sorting ascending. ----------------"
-                        << " Index : " << i << " Value : " << pval
-                        << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
+                    // starttime = clock();
+                    // if ( i==0 ) {
+                    //     std::partial_sort (allValues.begin(), allValues.begin()+locationIndex+1, allValues.end(), compareIntensityTuples);
+                    //     intensities[i].second = allValues[locationIndex].second;
+                    // }
+                    // pval = allValues.begin()->second;
+                    // endtime = clock();
+                    // std::cout << "---------------- The time of partial sorting descending. ----------------"
+                    //     << " Index : " << i << " Value : " << pval
+                    //     << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
+                    //
+                    // starttime = clock();
+                    // if ( i==1 ) {
+                    //     double revpercentile = 1.0 - percentiles[1];
+                    //     int revlocationIndex = std::max((int)(allValues.size() * revpercentile - 1), 0);
+                    //     // std::reverse(allValues.begin(), allValues.end());
+                    //     std::partial_sort (allValues.begin(), allValues.begin()+revlocationIndex+1, allValues.end(), ascendIntensityTuples);
+                    //     intensities[i].second = allValues[revlocationIndex].second;
+                    // }
+                    // pval = allValues.begin()->second;
+                    // endtime = clock();
+                    // std::cout << "---------------- The time of partial sorting ascending. ----------------"
+                    //     << " Index : " << i << " Value : " << pval
+                    //     << " Time : " << (double)(endtime-starttime)/CLOCKS_PER_SEC << "sec" << endl;
 
                     // get the intensity value
                     // intensities[i].second = allValues[locationIndex].second;
