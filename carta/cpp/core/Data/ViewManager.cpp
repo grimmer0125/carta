@@ -1198,7 +1198,7 @@ void ViewManager::setDefaultLayoutView(bool cleanPluginList) {
         _makeLayout();
     }
     if ( !m_layout->isLayoutDefault()){
-        _clearHistograms( 0, m_histograms.size() );
+        _clearHistograms( 1, m_histograms.size() );
         _clearAnimators( 1, m_animators.size() );
         _clearColormaps( 1, m_colormaps.size() );
         _clearStatistics( 1, m_statistics.size());
@@ -1212,8 +1212,8 @@ void ViewManager::setDefaultLayoutView(bool cleanPluginList) {
         m_colormaps[0]->addLink( m_controllers[0]);
         m_statistics[0]->addLink( m_controllers[0]);
 
-        // m_histograms[0]->addLink( m_controllers[0]);
-        // m_colormaps[0]->addLink( m_histograms[0]);
+         m_histograms[0]->addLink( m_controllers[0]);
+         m_colormaps[0]->addLink( m_histograms[0]);
         _refreshState();
     }
 
