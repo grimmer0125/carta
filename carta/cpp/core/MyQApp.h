@@ -2,7 +2,7 @@
 
 /// \todo move this all into carta::core namespace
 
-#include <QApplication>
+#include <QCoreApplication>
 #include <functional>
 #include "IConnector.h"
 
@@ -10,7 +10,7 @@
 /// access to the internals of QApplication.
 ///
 /// @todo For server side this should be QGuiApplication
-class MyQApp : public QApplication
+class MyQApp : public QCoreApplication
 {
     Q_OBJECT
 

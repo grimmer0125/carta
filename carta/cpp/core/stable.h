@@ -25,7 +25,7 @@
 #include "MyQApp.h"
 #include "Nullable.h"
 #include "PluginManager.h"
-#include <QApplication>
+// #include <QApplication>
 #include <QColor>
 #include <QCoreApplication>
 #include <QDebug>

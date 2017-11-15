@@ -10,7 +10,7 @@
 #include <QDebug>
 
 MyQApp::MyQApp( int & argc, char * * argv ) :
-    QApplication( argc, argv )
+    QCoreApplication( argc, argv )
 {
     setApplicationName( "carta" );
     setApplicationVersion( "0.0.1" );
@@ -23,7 +23,7 @@ MyQApp::notify( QObject * obj, QEvent * ev )
 {
     QStringList err;
     try {
-        return QApplication::notify( obj, ev );
+        return QCoreApplication::notify( obj, ev );
     }
     catch ( std::exception & e ) {
         err << QString( "Exception (std::exception): %1" ).arg( e.what() );

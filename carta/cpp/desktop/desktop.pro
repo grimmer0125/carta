@@ -2,7 +2,7 @@
   error( "Could not find the common.pri file!" )
 }
 
-QT      +=  network widgets xml websockets webchannel
+QT      +=  network xml websockets webchannel
 # QT      +=  webkitwidgets
 
 HEADERS += \

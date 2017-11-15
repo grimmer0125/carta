@@ -5,7 +5,7 @@
 TEMPLATE = lib
 
 ###CONFIG += staticlib
-QT += widgets network
+QT += network
 QT += xml
 
 HEADERS += \
