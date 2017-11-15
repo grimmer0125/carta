@@ -5,7 +5,7 @@
 INCLUDEPATH += $$PROJECT_ROOT
 DEPENDPATH += $$PROJECT_ROOT
 
-QT       += core gui sql
+QT       += core sql
 
 TARGET = plugin
 TEMPLATE = lib

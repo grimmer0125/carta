@@ -8,9 +8,12 @@
 #include "core/CmdLine.h"
 #include "core/Globals.h"
 
-#include <QtWidgets>
+//#include <QtWidgets>
 //#include <QWebSettings>
-#include <QDesktopWidget>
+//#include <QDesktopWidget>
+#include <QFileInfo>
+#include <QDir>
+
 #include <unistd.h>
 
 std::string warningColor, criticalColor, fatalColor, resetColor;
