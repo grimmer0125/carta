@@ -67,6 +67,7 @@ static void
 drawText( const char * text, float x, float y, const char * just,
           float upx, float upy, float * xb = 0, float * yb = 0 )
 {
+    return;
     QString jst = just ? QString( just ).toUpper() : "CC";
 
     QFontMetricsF fm( painter().font(), painter().device() );
@@ -887,14 +888,14 @@ astGAttr( int attr, double value, double * old_value, int /* prim */ )
     // used for grids... we certainly don't draw them
     else if ( attr == GRF__SIZE ) {
         if ( old_value ) {
-            * old_value = painter().fontInfo().pointSizeF();
+            * old_value = 10;//painter().fontInfo().pointSizeF();; //10; //"Helvetica", 10 painter().fontInfo().pointSizeF();
         }
-        if ( value != AST__BAD ) {
+        if ( value != AST__BAD ) { //1st, 9, seems default in ast, 2nd:10, 3rd: 9
             QFont font = painter().font();
             font.setPointSizeF( value );
             painter().setFont( font );
 
-            vgc()-> append < VGE::SetFontSize > ( painter().font().pointSizeF() );
+            vgc()-> append < VGE::SetFontSize > ( painter().font().pointSizeF() ); //1st, 9
         }
     }
 
