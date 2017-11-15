@@ -62,18 +62,27 @@ painter()
     return * grfGlobals()->painter;
 }
 
+double ascent(){
+    return 9.234375;
+}
+
+double descent(){
+    return 2.75;
+}
+
 /// helper to draw text & calculate bounding boxes around the text
 static void
 drawText( const char * text, float x, float y, const char * just,
           float upx, float upy, float * xb = 0, float * yb = 0 )
 {
-    return;
     QString jst = just ? QString( just ).toUpper() : "CC";
 
     QFontMetricsF fm( painter().font(), painter().device() );
-    double tw = fm.width( text );
-    double asc = fm.ascent() * 0.8;
-    double th = fm.descent() + 1 + asc;
+    //     1920 external monitor and macbook pro has the same tw.
+    double length = sizeof(text);
+    double tw = length*5+8.35;//for font 10. fm.width( text ); //63.359375, text:0:00:00.000(11). 53.359375 for 59:15.300(9).
+    double asc = ascent() * 0.8; //9.234375*0.8 = 7.3875. 2nd: same
+    double th = descent() + 1 + asc; //11.1375, fm.descent= 2.75
 
     // create an offset tx,ty based on adjustments
     double offx, offy;
@@ -81,7 +90,7 @@ drawText( const char * text, float x, float y, const char * just,
         offy = 0;
     }
     else if ( jst[0] == 'B' ) {
-        offy = - fm.descent();
+        offy = - descent();
     }
     else if ( jst[0] == 'T' ) {
         offy = asc + 1;
@@ -129,7 +138,7 @@ drawText( const char * text, float x, float y, const char * just,
 
     // compute the bounding rectangle...
     if ( xb && yb ) {
-        QRectF rect( offx, offy + fm.descent(), tw, - th );
+        QRectF rect( offx, offy + descent(), tw, - th );
         QPointF p1 = tr.map( rect.bottomLeft() );
         QPointF p2 = tr.map( rect.bottomRight() );
         QPointF p3 = tr.map( rect.topRight() );
