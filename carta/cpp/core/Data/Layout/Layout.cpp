@@ -454,10 +454,8 @@ void Layout::setLayoutDefault(bool cleanPluginList) {
 
     LayoutNode* statLeaf = NodeFactory::makeLeaf( Statistics::CLASS_NAME );
     rightTop->setChildFirst( statLeaf );
-
-    LayoutNode* histogramLeaf = NodeFactory::makeLeaf( Histogram::CLASS_NAME );
-//    LayoutNode* hiddenLeaf = NodeFactory::makeLeaf( NodeFactory::HIDDEN );
-    rightTop->setChildSecond( histogramLeaf );
+    LayoutNode* hiddenLeaf = NodeFactory::makeLeaf( NodeFactory::HIDDEN );
+    rightTop->setChildSecond( hiddenLeaf );
 
     LayoutNode* rightBottom = NodeFactory::makeComposite( false );
     LayoutNode* colorLeaf = NodeFactory::makeLeaf( Colormap::CLASS_NAME );
